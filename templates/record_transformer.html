@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Record Transformer - Logs</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .header-bg {
+            background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+            color: white;
+            padding: 20px 0;
+        }
+        .card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+            margin-bottom: 20px;
+        }
+        .table th {
+            font-weight: 600;
+            color: #333;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: #6f42c1;
+            border-color: #6f42c1;
+        }
+        .pagination .page-link {
+            color: #6f42c1;
+        }
+        .pagination .page-link:hover {
+            background-color: #e9ecef;
+        }
+        .badge-processed {
+            background-color: #28a745;
+            color: white;
+        }
+        .badge-unprocessed {
+            background-color: #dc3545;
+            color: white;
+        }
+        .filter-card {
+            background-color: #f8f9fa;
+            border-left: 4px solid #6f42c1;
+        }
+        .bulk-actions {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .bulk-action-btn {
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .select-all-checkbox {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-pie me-2"></i>Spending Dashboard
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'index' else '' }}" href="/">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'admin' else '' }}" href="/admin">
+                            <i class="fas fa-cogs me-1"></i>Admin
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'record_transformer' else '' }}" href="/record_transformer">
+                            <i class="fas fa-file-alt me-1"></i>Record Transformer
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Filters -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card filter-card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-filter me-2"></i>Filters</h5>
+                        <form method="GET" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="category" class="form-label">Category</label>
+                                <select class="form-select" id="category" name="category">
+                                    <option value="">All Categories</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category }}" {{ 'selected' if category_filter == category else '' }}>
+                                        {{ category }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label for="search" class="form-label">Search Description</label>
+                                <input type="text" class="form-control" id="search" name="search" 
+                                       value="{{ search_description or '' }}" placeholder="Search in description...">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-search me-1"></i> Apply Filters
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="bulk-actions">
+                    <div class="d-flex flex-wrap align-items-center">
+                        <div class="form-check me-3 mb-2">
+                            <input class="form-check-input select-all-checkbox" type="checkbox" id="selectAll">
+                            <label class="form-check-label" for="selectAll">
+                                Select All
+                            </label>
+                        </div>
+                        <button class="btn btn-success bulk-action-btn" onclick="bulkAction('update_category')">
+                            <i class="fas fa-edit me-1"></i> Update Category
+                        </button>
+                        <button class="btn btn-warning bulk-action-btn" onclick="bulkAction('update_description')">
+                            <i class="fas fa-font me-1"></i> Update Description
+                        </button>
+                        <button class="btn btn-danger bulk-action-btn" onclick="bulkAction('delete_records')">
+                            <i class="fas fa-trash me-1"></i> Delete Selected
+                        </button>
+                        <div class="ms-auto">
+                            <span id="selectedCount">0 records selected</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Records Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        {% if records %}
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th><input type="checkbox" id="selectAllHeader"></th>
+                                        <th>Record ID Bank</th>
+                                        <th>Transaction Date</th>
+                                        <th>Currency Date</th>
+                                        <th>Account</th>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                        <th>Currency</th>
+                                        <th>Category</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in records %}
+                                    <tr>
+                                        <td><input type="checkbox" class="record-checkbox" value="{{ record[0] }}"></td>
+                                        <td>{{ record[0] }}</td>
+                                        <td>{{ record[1] }}</td>
+                                        <td>{{ record[2] }}</td>
+                                        <td>{{ record[3] or 'N/A' }}</td>
+                                        <td>{{ record[4] }}</td>
+                                        <td>{{ record[5] }}</td>
+                                        <td>{{ record[6] }}</td>
+                                        <td>{{ record[7] or 'Uncategorized' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <nav aria-label="Financial records pagination">
+                            <ul class="pagination justify-content-center">
+                                {% if page > 1 %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page - 1 }}&per_page={{ per_page }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for i in range(1, total_pages + 1) %}
+                                    {% if i == page %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ i }}</span>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ i }}&per_page={{ per_page }}&category={{ category_filter or '' }}&search={{ search_description or '' }}">{{ i }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if page < total_pages %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page + 1 }}&per_page={{ per_page }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+
+                        <!-- Records per page selector -->
+                        <div class="d-flex justify-content-center mt-3">
+                            <form method="get" action="/record_transformer" class="d-inline">
+                                <div class="input-group input-group-sm" style="width: 200px;">
+                                    <label class="input-group-text" for="per_page">Records per page:</label>
+                                    <select class="form-select form-select-sm" name="per_page" id="per_page" onchange="this.form.submit()">
+                                        <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                                        <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                                        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                                        <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <h4 class="text-muted">No processed records found</h4>
+                            <p class="text-muted">There are currently no processed records in the system.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Select all functionality
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.record-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectedCount();
+        });
+
+        document.getElementById('selectAllHeader').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.record-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectedCount();
+        });
+
+        // Individual checkbox change
+        document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateSelectedCount();
+            });
+        });
+
+        // Update selected count display
+        function updateSelectedCount() {
+            const checkedBoxes = document.querySelectorAll('.record-checkbox:checked');
+            document.getElementById('selectedCount').textContent = `${checkedBoxes.length} records selected`;
+        }
+
+        // Bulk action handler
+        function bulkAction(action) {
+            const checkedBoxes = document.querySelectorAll('.record-checkbox:checked');
+            const recordIds = Array.from(checkedBoxes).map(cb => cb.value);
+            
+            if (recordIds.length === 0) {
+                alert('Please select at least one record to perform this action.');
+                return;
+            }
+            
+            switch(action) {
+                case 'update_category':
+                    handleBulkCategoryUpdate(recordIds);
+                    break;
+                case 'update_description':
+                    handleBulkDescriptionUpdate(recordIds);
+                    break;
+                case 'delete_records':
+                    if (confirm(`Are you sure you want to delete ${recordIds.length} records?`)) {
+                        handleBulkDelete(recordIds);
+                    }
+                    break;
+            }
+        }
+
+        // Handle bulk category update
+        function handleBulkCategoryUpdate(recordIds) {
+            const newCategory = prompt('Enter the new category for selected records:');
+            if (newCategory !== null && newCategory.trim() !== '') {
+                // Send AJAX request to update categories
+                fetch('/update_categories', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'record_ids=' + recordIds.join(',') + '&new_category=' + encodeURIComponent(newCategory)
+                })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    // Refresh the page to show updated data
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error updating categories: ' + error.message);
+                });
+            }
+        }
+
+        // Handle bulk description update
+        function handleBulkDescriptionUpdate(recordIds) {
+            const newDescription = prompt('Enter the new description for selected records:');
+            if (newDescription !== null && newDescription.trim() !== '') {
+                // In a real implementation, this would make an AJAX request to update the records
+                alert(`Would update ${recordIds.length} records with description: ${newDescription}`);
+                console.log('Update description:', recordIds, newDescription);
+            }
+        }
+
+        // Handle bulk delete
+        function handleBulkDelete(recordIds) {
+            // In a real implementation, this would make an AJAX request to delete the records
+            alert(`Would delete ${recordIds.length} records`);
+            console.log('Delete records:', recordIds);
+        }
+    </script>
+</body>
+</html>
