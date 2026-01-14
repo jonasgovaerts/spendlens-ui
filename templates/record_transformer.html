@@ -129,6 +129,46 @@
             </div>
         </div>
 
+        <!-- Sorting Controls -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-sort me-2"></i>Sort Records</h5>
+                        <form method="GET" class="row g-3">
+                            <input type="hidden" name="category" value="{{ category_filter or '' }}">
+                            <input type="hidden" name="search" value="{{ search_description or '' }}">
+                            
+                            <div class="col-md-4">
+                                <label for="sort_by" class="form-label">Sort By</label>
+                                <select class="form-select" id="sort_by" name="sort_by">
+                                    <option value="transaction_date" {{ 'selected' if sort_by == 'transaction_date' else '' }}>Transaction Date</option>
+                                    <option value="amount" {{ 'selected' if sort_by == 'amount' else '' }}>Amount</option>
+                                    <option value="category" {{ 'selected' if sort_by == 'category' else '' }}>Category</option>
+                                    <option value="description" {{ 'selected' if sort_by == 'description' else '' }}>Description</option>
+                                    <option value="account" {{ 'selected' if sort_by == 'account' else '' }}>Account</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label for="sort_order" class="form-label">Order</label>
+                                <select class="form-select" id="sort_order" name="sort_order">
+                                    <option value="desc" {{ 'selected' if sort_order == 'desc' else '' }}>Descending</option>
+                                    <option value="asc" {{ 'selected' if sort_order == 'asc' else '' }}>Ascending</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-5 d-flex align-items-end">
+                                <button type="submit" class="btn btn-secondary w-100">
+                                    <i class="fas fa-sort-amount-down me-1"></i> Apply Sorting
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Bulk Actions -->
         <div class="row mb-4">
             <div class="col-12">
@@ -168,14 +208,54 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th><input type="checkbox" id="selectAllHeader"></th>
-                                        <th>Record ID Bank</th>
-                                        <th>Transaction Date</th>
-                                        <th>Currency Date</th>
-                                        <th>Account</th>
-                                        <th>Description</th>
-                                        <th>Amount</th>
-                                        <th>Currency</th>
-                                        <th>Category</th>
+                                        <th><a href="?sort_by=record_id_bank&sort_order={{ 'asc' if sort_by == 'record_id_bank' and sort_order == 'desc' else 'desc' }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" class="text-decoration-none text-dark">
+                                            Record ID Bank
+                                            {% if sort_by == 'record_id_bank' %}
+                                                <i class="fas fa-sort-{{ 'up' if sort_order == 'asc' else 'down' }}"></i>
+                                            {% endif %}
+                                        </a></th>
+                                        <th><a href="?sort_by=transaction_date&sort_order={{ 'asc' if sort_by == 'transaction_date' and sort_order == 'desc' else 'desc' }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" class="text-decoration-none text-dark">
+                                            Transaction Date
+                                            {% if sort_by == 'transaction_date' %}
+                                                <i class="fas fa-sort-{{ 'up' if sort_order == 'asc' else 'down' }}"></i>
+                                            {% endif %}
+                                        </a></th>
+                                        <th><a href="?sort_by=currency_date&sort_order={{ 'asc' if sort_by == 'currency_date' and sort_order == 'desc' else 'desc' }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" class="text-decoration-none text-dark">
+                                            Currency Date
+                                            {% if sort_by == 'currency_date' %}
+                                                <i class="fas fa-sort-{{ 'up' if sort_order == 'asc' else 'down' }}"></i>
+                                            {% endif %}
+                                        </a></th>
+                                        <th><a href="?sort_by=account&sort_order={{ 'asc' if sort_by == 'account' and sort_order == 'desc' else 'desc' }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" class="text-decoration-none text-dark">
+                                            Account
+                                            {% if sort_by == 'account' %}
+                                                <i class="fas fa-sort-{{ 'up' if sort_order == 'asc' else 'down' }}"></i>
+                                            {% endif %}
+                                        </a></th>
+                                        <th><a href="?sort_by=description&sort_order={{ 'asc' if sort_by == 'description' and sort_order == 'desc' else 'desc' }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" class="text-decoration-none text-dark">
+                                            Description
+                                            {% if sort_by == 'description' %}
+                                                <i class="fas fa-sort-{{ 'up' if sort_order == 'asc' else 'down' }}"></i>
+                                            {% endif %}
+                                        </a></th>
+                                        <th><a href="?sort_by=amount&sort_order={{ 'asc' if sort_by == 'amount' and sort_order == 'desc' else 'desc' }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" class="text-decoration-none text-dark">
+                                            Amount
+                                            {% if sort_by == 'amount' %}
+                                                <i class="fas fa-sort-{{ 'up' if sort_order == 'asc' else 'down' }}"></i>
+                                            {% endif %}
+                                        </a></th>
+                                        <th><a href="?sort_by=currency&sort_order={{ 'asc' if sort_by == 'currency' and sort_order == 'desc' else 'desc' }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" class="text-decoration-none text-dark">
+                                            Currency
+                                            {% if sort_by == 'currency' %}
+                                                <i class="fas fa-sort-{{ 'up' if sort_order == 'asc' else 'down' }}"></i>
+                                            {% endif %}
+                                        </a></th>
+                                        <th><a href="?sort_by=category&sort_order={{ 'asc' if sort_by == 'category' and sort_order == 'desc' else 'desc' }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" class="text-decoration-none text-dark">
+                                            Category
+                                            {% if sort_by == 'category' %}
+                                                <i class="fas fa-sort-{{ 'up' if sort_order == 'asc' else 'down' }}"></i>
+                                            {% endif %}
+                                        </a></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -201,7 +281,7 @@
                             <ul class="pagination justify-content-center">
                                 {% if page > 1 %}
                                     <li class="page-item">
-                                        <a class="page-link" href="?page={{ page - 1 }}&per_page={{ per_page }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" aria-label="Previous">
+                                        <a class="page-link" href="?page={{ page - 1 }}&per_page={{ per_page }}&category={{ category_filter or '' }}&search={{ search_description or '' }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}" aria-label="Previous">
                                             <span aria-hidden="true">&laquo;</span>
                                         </a>
                                     </li>
@@ -214,14 +294,14 @@
                                         </li>
                                     {% else %}
                                         <li class="page-item">
-                                            <a class="page-link" href="?page={{ i }}&per_page={{ per_page }}&category={{ category_filter or '' }}&search={{ search_description or '' }}">{{ i }}</a>
+                                            <a class="page-link" href="?page={{ i }}&per_page={{ per_page }}&category={{ category_filter or '' }}&search={{ search_description or '' }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">{{ i }}</a>
                                         </li>
                                     {% endif %}
                                 {% endfor %}
                                 
                                 {% if page < total_pages %}
                                     <li class="page-item">
-                                        <a class="page-link" href="?page={{ page + 1 }}&per_page={{ per_page }}&category={{ category_filter or '' }}&search={{ search_description or '' }}" aria-label="Next">
+                                        <a class="page-link" href="?page={{ page + 1 }}&per_page={{ per_page }}&category={{ category_filter or '' }}&search={{ search_description or '' }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}" aria-label="Next">
                                             <span aria-hidden="true">&raquo;</span>
                                         </a>
                                     </li>
@@ -308,7 +388,7 @@
                     handleBulkDescriptionUpdate(recordIds);
                     break;
                 case 'delete_records':
-                    if (confirm(`Are you sure you want to delete ${recordIds.length} records?`)) {
+                    if (confirm(`Are you sure you want to delete ${recordIds.length} records? This action cannot be undone.`)) {
                         handleBulkDelete(recordIds);
                     }
                     break;
@@ -352,9 +432,24 @@
 
         // Handle bulk delete
         function handleBulkDelete(recordIds) {
-            // In a real implementation, this would make an AJAX request to delete the records
-            alert(`Would delete ${recordIds.length} records`);
-            console.log('Delete records:', recordIds);
+            // Send AJAX request to delete records
+            fetch('/delete_records', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'record_ids=' + recordIds.join(',')
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert(data);
+                // Refresh the page to show updated data
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting records: ' + error.message);
+            });
         }
     </script>
 </body>

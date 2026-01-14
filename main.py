@@ -47,6 +47,95 @@ def get_db_connection():
     )
     return conn
 
+def get_monthly_yearly_balances():
+    """Get monthly and yearly balance information"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get monthly balances (positive = income, negative = expenses)
+        monthly_query = """
+            SELECT 
+                EXTRACT(YEAR FROM transaction_date) as year,
+                EXTRACT(MONTH FROM transaction_date) as month,
+                SUM(amount) as total_amount,
+                CASE 
+                    WHEN SUM(amount) > 0 THEN 'positive'
+                    WHEN SUM(amount) < 0 THEN 'negative'
+                    ELSE 'zero'
+                END as balance_status
+            FROM processed_records 
+            GROUP BY EXTRACT(YEAR FROM transaction_date), EXTRACT(MONTH FROM transaction_date)
+            ORDER BY year DESC, month DESC
+        """
+        
+        cursor.execute(monthly_query)
+        monthly_balances = cursor.fetchall()
+        
+        # Get yearly balances
+        yearly_query = """
+            SELECT 
+                EXTRACT(YEAR FROM transaction_date) as year,
+                SUM(amount) as total_amount,
+                CASE 
+                    WHEN SUM(amount) > 0 THEN 'positive'
+                    WHEN SUM(amount) < 0 THEN 'negative'
+                    ELSE 'zero'
+                END as balance_status
+            FROM processed_records 
+            GROUP BY EXTRACT(YEAR FROM transaction_date)
+            ORDER BY year DESC
+        """
+        
+        cursor.execute(yearly_query)
+        yearly_balances = cursor.fetchall()
+        
+        # Format monthly data
+        formatted_monthly = []
+        for record in monthly_balances:
+            year = int(record[0])
+            month = int(record[1])
+            amount = float(record[2]) if record[2] is not None else 0.0
+            status = record[3]
+            
+            # Format month name
+            month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December']
+            month_name = month_names[month - 1] if 1 <= month <= 12 else 'Unknown'
+            
+            formatted_monthly.append({
+                'year': year,
+                'month': month,
+                'month_name': month_name,
+                'amount': amount,
+                'status': status
+            })
+        
+        # Format yearly data
+        formatted_yearly = []
+        for record in yearly_balances:
+            year = int(record[0])
+            amount = float(record[1]) if record[1] is not None else 0.0
+            status = record[2]
+            
+            formatted_yearly.append({
+                'year': year,
+                'amount': amount,
+                'status': status
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return formatted_monthly, formatted_yearly
+        
+    except Exception as e:
+        logging.error(f"Error fetching monthly/yearly balances: {str(e)}")
+        logging.debug("Traceback:")
+        import traceback
+        traceback.print_exc()
+        return [], []
+
 def get_spending_data(time_period, category_filter=None, start_date=None, end_date=None):
     """Get spending data by category for specified time period or date range"""
     
@@ -153,13 +242,18 @@ def index():
     # Get spending data for the specified period
     spending_data, total_spending = get_spending_data(time_period, category_filter, start_date, end_date)
     
+    # Get monthly and yearly balances
+    monthly_balances, yearly_balances = get_monthly_yearly_balances()
+    
     return render_template('index.html', 
                          spending_data=spending_data,
                          total_spending=total_spending,
                          time_period=time_period,
                          category_filter=category_filter,
                          start_date=start_date,
-                         end_date=end_date)
+                         end_date=end_date,
+                         monthly_balances=monthly_balances,
+                         yearly_balances=yearly_balances)
 
 @app.route('/admin')
 def admin():
@@ -228,11 +322,23 @@ def record_transformer():
     category_filter = request.args.get('category', None)
     search_description = request.args.get('search', None)
     
+    # Get sorting parameters
+    sort_by = request.args.get('sort_by', 'transaction_date')
+    sort_order = request.args.get('sort_order', 'desc')
+    
     # Validate pagination parameters
     if page < 1:
         page = 1
     if per_page < 1 or per_page > 100:
         per_page = 10
+    
+    # Validate sort parameters
+    valid_sort_fields = ['record_id_bank', 'transaction_date', 'currency_date', 'account', 'description', 'amount', 'currency', 'category']
+    if sort_by not in valid_sort_fields:
+        sort_by = 'transaction_date'
+    
+    if sort_order not in ['asc', 'desc']:
+        sort_order = 'desc'
     
     # Calculate offset for SQL query
     offset = (page - 1) * per_page
@@ -271,7 +377,8 @@ def record_transformer():
         if where_clauses:
             base_query += " WHERE " + " AND ".join(where_clauses)
             
-        base_query += " ORDER BY transaction_date DESC LIMIT %s OFFSET %s"
+        # Add sorting
+        base_query += " ORDER BY " + sort_by + " " + sort_order + " LIMIT %s OFFSET %s"
         params.extend([per_page, offset])
         
         cursor.execute(base_query, params)
@@ -307,7 +414,9 @@ def record_transformer():
                              total_count=total_count,
                              categories=categories,
                              category_filter=category_filter,
-                             search_description=search_description)
+                             search_description=search_description,
+                             sort_by=sort_by,
+                             sort_order=sort_order)
                              
     except Exception as e:
         logging.error(f"Error in record_transformer: {str(e)}")
@@ -359,6 +468,48 @@ def update_categories():
         import traceback
         traceback.print_exc()
         return f"Error updating categories: {str(e)}", 500
+
+@app.route('/delete_records', methods=['POST'])
+def delete_records():
+    try:
+        # Get form data
+        record_ids_str = request.form.get('record_ids')
+        
+        if not record_ids_str:
+            return "Missing record IDs", 400
+            
+        # Parse comma-separated record IDs
+        record_ids = [id.strip() for id in record_ids_str.split(',') if id.strip()]
+        
+        if not record_ids:
+            return "No valid record IDs provided", 400
+            
+        # Connect to database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Delete records
+        delete_query = """
+            DELETE FROM processed_records 
+            WHERE record_id_bank = ANY(%s)
+        """
+        cursor.execute(delete_query, (record_ids,))
+        
+        # Commit the changes
+        conn.commit()
+        
+        # Close connections
+        cursor.close()
+        conn.close()
+        
+        return f"Successfully deleted {len(record_ids)} records", 200
+        
+    except Exception as e:
+        logging.error(f"Error deleting records: {str(e)}")
+        logging.debug("Traceback:")
+        import traceback
+        traceback.print_exc()
+        return f"Error deleting records: {str(e)}", 500
 
 if __name__ == '__main__':
     app.run(debug=True)

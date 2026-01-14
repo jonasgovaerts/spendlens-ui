@@ -252,6 +252,89 @@
             </div>
         </div>
 
+        <!-- Monthly and Yearly Balances -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-balance-scale me-2"></i>Monthly & Yearly Balances</h5>
+                        
+                        <div class="row">
+                            <!-- Monthly Balances -->
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-calendar-month me-1"></i>Monthly Balances</h6>
+                                {% if monthly_balances %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Month</th>
+                                                <th class="text-end">Amount</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for balance in monthly_balances %}
+                                            <tr>
+                                                <td>{{ balance.month_name }} {{ balance.year }}</td>
+                                                <td class="text-end">
+                                                    <strong>€{{ "%.2f"|format(balance.amount) }}</strong>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{{ 'success' if balance.status == 'positive' else 'danger' if balance.status == 'negative' else 'secondary' }}">
+                                                        {{ balance.status.title() }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <p class="text-muted">No monthly balance data available.</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Yearly Balances -->
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-calendar-year me-1"></i>Yearly Balances</h6>
+                                {% if yearly_balances %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Year</th>
+                                                <th class="text-end">Amount</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for balance in yearly_balances %}
+                                            <tr>
+                                                <td>{{ balance.year }}</td>
+                                                <td class="text-end">
+                                                    <strong>€{{ "%.2f"|format(balance.amount) }}</strong>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{{ 'success' if balance.status == 'positive' else 'danger' if balance.status == 'negative' else 'secondary' }}">
+                                                        {{ balance.status.title() }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <p class="text-muted">No yearly balance data available.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Category Breakdown -->
         {% if spending_data %}
         <div class="row">
