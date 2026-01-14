@@ -12,5 +12,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py .
 COPY templates/ ./templates/
 
-# Set the entrypoint to run the main application
-CMD ["python", "main.py"]
+# Install wsgy
+RUN pip install gunicorn
+
+# Expose port
+EXPOSE 5000
+
+# Run the application with gunicorn (WSGI)
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
