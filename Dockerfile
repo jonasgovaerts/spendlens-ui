@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY main.py .
-COPY src/ ./src/
+COPY templates/ ./templates/
 
 # Set the entrypoint to run the main application
 CMD ["python", "main.py"]
