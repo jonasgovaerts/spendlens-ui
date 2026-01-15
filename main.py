@@ -245,6 +245,31 @@ def index():
     # Get monthly and yearly balances
     monthly_balances, yearly_balances = get_monthly_yearly_balances()
     
+    # Pagination for balances - default to 10 items per page
+    monthly_page = request.args.get('monthly_page', 1, type=int)
+    yearly_page = request.args.get('yearly_page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    
+    # Validate pagination parameters
+    if monthly_page < 1:
+        monthly_page = 1
+    if yearly_page < 1:
+        yearly_page = 1
+    if per_page < 1 or per_page > 100:
+        per_page = 10
+    
+    # Calculate offsets for pagination
+    monthly_offset = (monthly_page - 1) * per_page
+    yearly_offset = (yearly_page - 1) * per_page
+    
+    # Paginate monthly balances
+    paginated_monthly = monthly_balances[monthly_offset:monthly_offset + per_page]
+    monthly_total_pages = (len(monthly_balances) + per_page - 1) // per_page
+    
+    # Paginate yearly balances
+    paginated_yearly = yearly_balances[yearly_offset:yearly_offset + per_page]
+    yearly_total_pages = (len(yearly_balances) + per_page - 1) // per_page
+    
     return render_template('index.html', 
                          spending_data=spending_data,
                          total_spending=total_spending,
@@ -252,8 +277,13 @@ def index():
                          category_filter=category_filter,
                          start_date=start_date,
                          end_date=end_date,
-                         monthly_balances=monthly_balances,
-                         yearly_balances=yearly_balances)
+                         monthly_balances=paginated_monthly,
+                         yearly_balances=paginated_yearly,
+                         monthly_total_pages=monthly_total_pages,
+                         yearly_total_pages=yearly_total_pages,
+                         monthly_page=monthly_page,
+                         yearly_page=yearly_page,
+                         per_page=per_page)
 
 @app.route('/admin')
 def admin():

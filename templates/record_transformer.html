@@ -35,6 +35,14 @@
         .pagination .page-link:hover {
             background-color: #e9ecef;
         }
+        /* Fix for pagination buttons spanning full width */
+        .pagination {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .pagination .page-item {
+            margin: 0 2px;
+        }
         .badge-processed {
             background-color: #28a745;
             color: white;
@@ -102,6 +110,8 @@
                     <div class="card-body">
                         <h5 class="card-title"><i class="fas fa-filter me-2"></i>Filters</h5>
                         <form method="GET" class="row g-3">
+                            <input type="hidden" name="sort_by" value="{{ sort_by }}">
+                            <input type="hidden" name="sort_order" value="{{ sort_order }}">
                             <div class="col-md-4">
                                 <label for="category" class="form-label">Category</label>
                                 <select class="form-select" id="category" name="category">
@@ -312,6 +322,10 @@
                         <!-- Records per page selector -->
                         <div class="d-flex justify-content-center mt-3">
                             <form method="get" action="/record_transformer" class="d-inline">
+                                <input type="hidden" name="category" value="{{ category_filter or '' }}">
+                                <input type="hidden" name="search" value="{{ search_description or '' }}">
+                                <input type="hidden" name="sort_by" value="{{ sort_by }}">
+                                <input type="hidden" name="sort_order" value="{{ sort_order }}">
                                 <div class="input-group input-group-sm" style="width: 200px;">
                                     <label class="input-group-text" for="per_page">Records per page:</label>
                                     <select class="form-select form-select-sm" name="per_page" id="per_page" onchange="this.form.submit()">
