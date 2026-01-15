@@ -35,6 +35,14 @@
         .pagination .page-link:hover {
             background-color: #e9ecef;
         }
+        /* Fix for pagination buttons spanning full width */
+        .pagination {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .pagination .page-item {
+            margin: 0 2px;
+        }
         .badge-unprocessed {
             background-color: #dc3545;
             color: white;
@@ -181,6 +189,8 @@
                                         <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
                                     </select>
                                 </div>
+                                <!-- Preserve existing filters -->
+                                <input type="hidden" name="page" value="1">
                             </form>
                         </div>
                         {% else %}
